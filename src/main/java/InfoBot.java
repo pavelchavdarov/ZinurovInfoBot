@@ -12,6 +12,7 @@ import org.telegram.telegrambots.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.exceptions.TelegramApiException;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -30,7 +31,7 @@ public class InfoBot extends TelegramLongPollingBot {
 
         // установка соединения с базой
         try {
-            connection = HikariCP.getDataSource().getConnection();//DAO.getConnection();
+            connection = HikariCP.getDataSource().getConnection();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -59,13 +60,13 @@ public class InfoBot extends TelegramLongPollingBot {
         System.out.println("chatId: " + chatId);
 
         try {
-            prepStatment = connection.prepareStatement("select exists(select true from  subscribers  where chat_id = ?) res");
+            prepStatment = connection.prepareStatement("select exists(select true from subscribers  where chat_id = ?) res");
             prepStatment.setLong(1, chatId);
             ResultSet rs = prepStatment.executeQuery();
             while(rs.next()){
                 if(!(rs.getBoolean("res"))){
-                    prepStatment = connection.prepareStatement("INSERT INTO subscribers (chat_id, reg_date) VALUES (?, current_timestamp)");
-                    prepStatment.setLong(1, chatId);
+                    prepStatment = connection.prepareStatement("INSERT INTO subscribers (chat_id, subscribe_date) VALUES (?, current_date)");
+                    prepStatment.setBigDecimal(1, BigDecimal.valueOf(chatId));
                     int res = prepStatment.executeUpdate();
                     System.out.println("Добавлено " + res + " записей");
                 }
@@ -97,12 +98,12 @@ public class InfoBot extends TelegramLongPollingBot {
         System.out.println("chatId: " + chatId);
 
         try {
-            prepStatment = connection.prepareStatement("select exists(select true from  subscribers  where chat_id = ?) res");
+            prepStatment = connection.prepareStatement("select exists(select true from subscribers  where chat_id = ?) res");
             prepStatment.setLong(1, chatId);
             ResultSet rs = prepStatment.executeQuery();
             while(rs.next()){
                 if(!(rs.getBoolean("res"))){
-                    prepStatment = connection.prepareStatement("INSERT INTO subscribers (chat_id, reg_date) VALUES (?, current_timestamp)");
+                    prepStatment = connection.prepareStatement("INSERT INTO subscribers (chat_id, subscribe_date) VALUES (?, current_date)");
                     prepStatment.setLong(1, chatId);
                     int res = prepStatment.executeUpdate();
                     System.out.println("Добавлено " + res + " записей");
@@ -114,18 +115,7 @@ public class InfoBot extends TelegramLongPollingBot {
         } catch (Exception e) {
             e.printStackTrace();
         }
-/*
-        AnswerCallbackQuery answerCallbackQuery = new AnswerCallbackQuery()
-                .setCallbackQueryId(callbackQuery.getId())
-                .setText("Вы подписаны на инфо-рассылку!")
-                .setShowAlert(true);
 
-        try {
-            this.sendApiMethod(answerCallbackQuery);
-        } catch (TelegramApiException e) {
-            e.printStackTrace();
-        }
-*/
         ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
 
         ArrayList<KeyboardRow> keys = new ArrayList<>();
@@ -149,7 +139,7 @@ public class InfoBot extends TelegramLongPollingBot {
 
         try {
             prepStatment = connection.prepareStatement("DELETE FROM subscribers WHERE  chat_id = ?");
-            prepStatment.setLong(1, chatId);
+            prepStatment.setBigDecimal(1, BigDecimal.valueOf(chatId));
             prepStatment.executeUpdate();
             System.out.println("Клиент " + chatId + " отписался.");
         } catch (Exception e) {

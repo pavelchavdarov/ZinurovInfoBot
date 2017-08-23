@@ -4,6 +4,8 @@ import org.telegram.telegrambots.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.api.objects.replykeyboard.buttons.KeyboardRow;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -14,12 +16,12 @@ import java.util.TimerTask;
 /**
  * Created by Павел on 05.08.2017.
  */
-public class Messager extends TimerTask {
+public class Poster extends TimerTask {
     private InfoBot bot;
     private ReplyKeyboard repKeyboard;
     private Connection connection;
 
-    public Messager() {
+    public Poster() {
         try {
             this.connection = HikariCP.getDataSource().getConnection();
         } catch (SQLException e) {
@@ -49,30 +51,33 @@ public class Messager extends TimerTask {
         //chatId и текст_сообщения нужно юрать из хранилища (DB?)
         PreparedStatement prepStatment = null;
         String chat = null;
-        String msg = "";
+        String postMessage = "";
+        BigDecimal sub_id = null;
+        BigDecimal post_id = null;
         System.out.println("работает таск");
         try {
-            prepStatment = connection.prepareStatement("select s.chat_id chat, m.msg msg " +
-                    "from subscribers s, messages m " +
-                    "where current_timestamp - (s.reg_date + m.timeshift) > '0 minute'::interval " +
-                    "and current_timestamp - (s.reg_date + m.timeshift) < '1 minute'::interval");
+            prepStatment = connection.prepareStatement("SELECT s.ID as sub_id, s.chat_id as chat, p.\"ID\" as post_id, p.\"Message\" as message\n" +
+                    "FROM Subscribers s, \"Posts\" p\n" +
+                    "WHERE current_date = s.subscribe_date + p.\"DayDelay\" and coalesce(s.last_post, -1) <> p.\"ID\"");
             ResultSet rs = prepStatment.executeQuery();
 
             while(rs.next()){
                 chat = rs.getString("chat");
-                msg = rs.getString("msg");
+                postMessage = rs.getString("message");
+                sub_id = rs.getBigDecimal("sub_id");
+                post_id = rs.getBigDecimal("post_id");
+
 //                System.out.println("Шлем сообщение '" + msg + "' в чат "+chat);
-                bot.sendInlineMessageToChat(msg, Long.valueOf(chat));
+                bot.sendInlineMessageToChat(postMessage, Long.valueOf(chat));
+                prepStatment = connection.prepareStatement("UPDATE subscribers SET last_post = ? where ID = ? ");
+                prepStatment.setBigDecimal(1, post_id);
+                prepStatment.setBigDecimal(2, sub_id);
+                prepStatment.executeUpdate();
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        if (chat != null) {
-            SendMessage message = new SendMessage()
-                    .setChatId(Long.valueOf(chat))
-                    .setText(msg)
-                    .setReplyMarkup(repKeyboard);
-        }
+
     }
 
     public InfoBot getBot() {
