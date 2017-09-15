@@ -1,3 +1,5 @@
+package DAO;
+
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
@@ -24,7 +26,7 @@ public class HikariCP {
                     poolConfig.setUsername(dbUri.getUserInfo().split(":")[0]);
                     poolConfig.setPassword(dbUri.getUserInfo().split(":")[1]);
                 }
-                poolConfig.setMaximumPoolSize(15);
+                poolConfig.setMaximumPoolSize(3);
                 poolConfig.addDataSourceProperty("sslmode","require");
                 dataSource = (DataSource) new HikariDataSource(poolConfig);
             } catch (URISyntaxException e) {
