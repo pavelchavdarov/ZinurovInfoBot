@@ -3,6 +3,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import MessageKeyboard.Button;
+import MessageKeyboard.ButtonTypes;
+import MessageKeyboard.Keyboard;
+import com.google.gson.Gson;
 import org.telegram.telegrambots.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.api.methods.send.SendMessage;
 import org.telegram.telegrambots.api.objects.CallbackQuery;
@@ -22,6 +26,7 @@ public class InfoBot extends TelegramLongPollingBot {
     private String BotToken;// = "394479438:AAGgxN1tqUZgrtJVqe619tTetgJh4awZO6w";
     private String BotUsername;// = "ZinurovInfoPosting_bot";
     private BotSession session;
+    private Gson gson;
 
     public HashMap<String, String> getBotSettings() {
         return botSettings;
@@ -38,7 +43,7 @@ public class InfoBot extends TelegramLongPollingBot {
    // private int messagesCounter;
     public InfoBot() {
         super();
-
+        gson = new Gson();
      //   messagesCounter = 0;
         //repKeyboard = createKeyboard();
 
@@ -53,6 +58,7 @@ public class InfoBot extends TelegramLongPollingBot {
     public InfoBot(HashMap<String, String> settings) {
         super();
         botSettings = settings;
+        gson = new Gson();
     }
 
     private void addSubscriber(CallbackQuery callbackQuery){
@@ -332,6 +338,67 @@ public class InfoBot extends TelegramLongPollingBot {
 //        }
     }
 
+
+    void sendInlineMessageToChat(String pMessage, String bntJson, long chatId){
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> buttons = new ArrayList<>();
+        InlineKeyboardButton callbackBtn;
+        ArrayList<InlineKeyboardButton> buttonRow = new ArrayList<>();
+        Keyboard kbr;
+        if (bntJson != null){
+            kbr = gson.fromJson(bntJson, Keyboard.class);
+
+            for(Button btn : kbr.InlineKeyboard){
+                if (btn.getBtnType() == ButtonTypes.Web) {
+                    callbackBtn = new InlineKeyboardButton(btn.getCaption()).setUrl(btn.getValue());
+                    buttonRow.add(callbackBtn);
+                }
+                if (btn.getBtnType() == ButtonTypes.Callback) {
+                    callbackBtn = new InlineKeyboardButton(btn.getCaption()).setCallbackData(btn.getValue());
+                    buttonRow.add(callbackBtn);
+                }
+            }
+        }
+        else {
+        // default keyboard
+            callbackBtn = new InlineKeyboardButton("www.Zinurov.ru").setUrl("http://zinurov.ru");
+            buttonRow.add(callbackBtn);
+
+            callbackBtn = new InlineKeyboardButton("@" + botSettings.get("BotAuthor")).setUrl("https://t.me/" + botSettings.get("BotAuthor"));
+            buttonRow.add(callbackBtn);
+
+            callbackBtn = new InlineKeyboardButton("Отписаться").setCallbackData("unsubscribe");
+            buttonRow.add(callbackBtn);
+
+        }
+        buttons.add(buttonRow);
+
+        inlineKeyboardMarkup.setKeyboard(buttons);
+        String name = DAO.BotFunctions.getSubscriberName(chatId);
+        System.out.println("name: " + name);
+        pMessage = pMessage.replaceAll("\\[имя пользователя]", name);
+
+        SendMessage message = new SendMessage()
+                .setChatId(chatId)
+                .setText(pMessage)
+                .enableHtml(true)
+                .setReplyMarkup(inlineKeyboardMarkup);
+        try {
+            this.execute(message);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+
+//        messagesCounter += 1;
+//        if(messagesCounter >= 15){
+//            try {
+//                wait(1000);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+//            messagesCounter = 0;
+//        }
+    }
 
 
     void sendMessageToChat(String pMessage, long chatId, ReplyKeyboard keyboard){
