@@ -288,6 +288,7 @@ public class InfoBot extends TelegramLongPollingBot {
                 case "subscribe":   addSubscriber(callbackQuery);
                     break;
                 case "unsubscribe": removeSubscriber(callbackQuery);
+                default: sendInlineMessageToChat(botSettings.get("BotDefaultAnswer"), update.getCallbackQuery().getMessage().getChatId());;
             }
 
         }
@@ -348,7 +349,7 @@ public class InfoBot extends TelegramLongPollingBot {
         if (bntJson != null){
             kbr = gson.fromJson(bntJson, Keyboard.class);
 
-            for(Button btn : kbr.InlineKeyboard){
+            for(Button btn : kbr.getKeyboard()){
                 if (btn.getBtnType() == ButtonTypes.Web) {
                     callbackBtn = new InlineKeyboardButton(btn.getCaption()).setUrl(btn.getValue());
                     buttonRow.add(callbackBtn);

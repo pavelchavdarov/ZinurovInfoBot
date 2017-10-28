@@ -89,9 +89,9 @@ public class Poster extends TimerTask {
                 botId = new BigDecimal(jedis.hget(bot.getBotUsername(), "botId").replaceAll(",", ""));
 
 
-            prepStatment = connection.prepareStatement("SELECT s.ID as sub_id, s.chat_id as chat, p.id as post_id, p.message as message , p.buttons" +
+            prepStatment = connection.prepareStatement("SELECT s.ID as sub_id, s.chat_id as chat, p.id as post_id, p.message as message , p.buttons " +
                     "FROM Subscribers s, posts p " +
-                    "WHERE p.ref_bot = ? and s.ref_bot = p.ref_bot and current_date = s.subscribe_date + p.daydelay and position('#'||p.id||'#' in s.last_post) = 0");
+                    "WHERE p.ref_bot = ? and s.ref_bot = p.ref_bot and current_date = s.subscribe_date + p.daydelay and position('#'||p.id||'#' in coalesce(s.last_post, '')) = 0");
             prepStatment.setBigDecimal(1, botId);
             ResultSet rs = prepStatment.executeQuery();
 
@@ -116,7 +116,7 @@ public class Poster extends TimerTask {
 //                System.out.println("Шлем сообщение '" + msg + "' в чат "+chat);
                 bot.sendInlineMessageToChat(postMessage, messageButtons, Long.valueOf(chat));
                 System.out.println("message: '"+postMessage+"' -> " + chat);
-                prepStatment = connection.prepareStatement("UPDATE subscribers SET last_post = last_post||'#'||?||'#' where ID = ? ");
+                prepStatment = connection.prepareStatement("UPDATE subscribers SET last_post = coalesce(last_post, '')||'#'||?||'#' where ID = ? ");
                 prepStatment.setBigDecimal(1, post_id);
                 prepStatment.setBigDecimal(2, sub_id);
                 prepStatment.executeUpdate();
